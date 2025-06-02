@@ -1,4 +1,6 @@
 import React, { useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber'
+import { CircleGeometry } from 'three'
 import * as THREE from 'three';
 
 export const Scene = ({ children, play = true, style }) => {
@@ -11,26 +13,29 @@ export const Scene = ({ children, play = true, style }) => {
   );
 };
 
-export const Circle = ({ position = [0, 0, 0], radius = 1, color = 'white' }) => {
-  const meshRef = useRef();
+export const Circle = ({ position = [0, 0, 0], radius = 1, color = 'blue' }) => {
+  const meshRef = useRef()
   
-  useEffect(() => {
-    if (!meshRef.current) return;
-    
-    // Set position
-    meshRef.current.position.set(...position);
-    
-    // Create geometry and material
-    const geometry = new THREE.CircleGeometry(radius, 32);
-    const material = new THREE.MeshBasicMaterial({ color });
-    
-    // Update mesh
-    meshRef.current.geometry = geometry;
-    meshRef.current.material = material;
-  }, [position, radius, color]);
+  // Create geometry once (better performance)
+  const geometry = new CircleGeometry(radius, 32)
+  const material = new THREE.MeshBasicMaterial({ color })
 
-  return <mesh ref={meshRef} />;
-};
+  useFrame(({ clock }) => {
+    if (meshRef.current) {
+      // Smooth bounce animation
+      meshRef.current.position.y = position[1] + Math.sin(clock.elapsedTime * 2) * 0.3
+    }
+  })
+
+  return (
+    <mesh
+      ref={meshRef}
+      position={position}
+      geometry={geometry}
+      material={material}
+    />
+  )
+}
 
 export const Square = ({ position = [0, 0, 0], size = 1, color = 'white' }) => {
   const meshRef = useRef();

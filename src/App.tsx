@@ -9,12 +9,12 @@ export default function App() {
           <Circle 
             position={[-1, 0, 0]} 
             radius={0.5} 
-            color="blue"
+            color="mediumturquoise"
           />
           <Square 
             position={[1, 0, 0]} 
             size={0.8} 
-            color="red"
+            color="hotpink"
           />
         </Scene>
       </Canvas>
