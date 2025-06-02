@@ -53,7 +53,7 @@ const SineWave = () => {
       <Line
         ref={lineRef}
         points={points.map(p => [p.x, p.y, p.z])}
-        color="red"
+        color="orange"
         lineWidth={1.2}
       />
       
