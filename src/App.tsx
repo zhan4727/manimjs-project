@@ -9,18 +9,24 @@ import SurfacePlot from './components/SurfacePlot';
 
 const App = () => {
   const [activeAnimation, setActiveAnimation] = useState(0);
+  const [surfaceFunction, setSurfaceFunction] = useState('0.5 * sin(x * 1.5 + t) * cos(y * 1.5 + t * 0.7) * sin(sqrt(x*x + y*y) + t * 0.5)');
+  const [functionError, setFunctionError] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
   const animations = [
     { id: 0, title: 'Sine Wave', color: '#FF6B6B', component: <SineWave /> },
     { id: 1, title: 'Parametric Curves', color: '#4ECDC4', component: <ParametricCurves /> },
     { id: 2, title: 'Particle System', color: '#FFE66D', component: <ParticleSystem /> },
     { id: 3, title: 'Fractal Visualization', color: '#1A535C', component: <FractalVisualization /> },
-    { id: 4, title: '3D Surface Plot', color: '#6A0572', component: <SurfacePlot /> }
+    { id: 4, title: '3D Surface Plot', color: '#6A0572', component: <SurfacePlot functionString={surfaceFunction} onError={setFunctionError} /> }
   ];
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {  // Add KeyboardEvent type here
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isInputFocused) return; // Disable navigation when input is focused
+    
       if (e.key === 'ArrowRight') {
-        setActiveAnimation(prev => (prev + 1) % animations.length);
+      setActiveAnimation(prev => (prev + 1) % animations.length);
       } else if (e.key === 'ArrowLeft') {
         setActiveAnimation(prev => (prev - 1 + animations.length) % animations.length);
       } else if (e.key >= '1' && e.key <= '5') {
@@ -32,7 +38,7 @@ const App = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [animations.length]); // Include dependencies
+  }, [animations.length, isInputFocused]); // Add isInputFocused as dependency
 
   return (
     <div style={{ 
@@ -217,8 +223,48 @@ const App = () => {
           {activeAnimation === 1 && 'Parametric equations creating beautiful curves: Lissajous figures.'}
           {activeAnimation === 2 && 'Particle system demonstrating wave interference patterns.'}
           {activeAnimation === 3 && '3D fractal visualization using recursive algorithms.'}
-          {activeAnimation === 4 && '3D surface plot of a mathematical function: z = f(x, y).'}
+          {activeAnimation === 4 && '3D surface plot of a mathematical function z = f(x, y, t), where the variable t represents time and increases for animation.'}
         </p>
+  
+        {/* Add function input only for Surface Plot */}
+        {activeAnimation === 4 && (
+          <div style={{ 
+            marginTop: '15px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}>
+            <input 
+              type="text"
+              value={surfaceFunction}
+              onChange={(e) => setSurfaceFunction(e.target.value)}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              placeholder="e.g., sin(x)*cos(y) + sin(t)"
+              style={{ 
+                width: '90%', 
+                padding: '10px', 
+                background: 'rgba(0,0,0,0.2)', 
+                border: '1px solid rgba(255,255,255,0.2)', 
+                borderRadius: '5px', 
+                color: 'white',
+                fontSize: '0.95rem'
+              }}
+            />
+            {functionError && (
+              <p style={{ 
+                color: '#ff5555', 
+                fontSize: '0.8rem', 
+                marginTop: '8px',
+                textAlign: 'center',
+                width: '100%'
+              }}>
+                {functionError}
+              </p>
+            )}
+          </div>
+        )}
+
         <div style={{ 
           marginTop: '15px', 
           color: 'rgba(255,255,255,0.7)',

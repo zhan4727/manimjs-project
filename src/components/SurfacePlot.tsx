@@ -1,36 +1,46 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import * as math from 'mathjs';
 
-const SurfacePlot = () => {
+interface SurfacePlotProps {
+  functionString: string;
+  onError: (error: string) => void;
+}
+
+const SurfacePlot = ({ functionString, onError }: SurfacePlotProps) => {
   const meshRef = useRef<THREE.Mesh>(null!);
   const size = 10;
   const resolution = 50;
-  
-  // Create geometry for surface plot
-  const geometry = useMemo(() => {
-    const geometry = new THREE.PlaneGeometry(size, size, resolution, resolution);
-    const positionAttribute = geometry.attributes.position as THREE.BufferAttribute;
-    // Cast to Float32Array for mutable access
-    const positions = positionAttribute.array as Float32Array;
-    
-    // Apply function to create surface
-    for (let i = 0; i <= resolution; i++) {
-      for (let j = 0; j <= resolution; j++) {
-        const idx = (i * (resolution + 1) + j) * 3;
-        const x = positions[idx];
-        const y = positions[idx + 1];
-        
-        // z = f(x, y)
-        const z = 0.5 * Math.sin(x * 1.5) * Math.cos(y * 1.5) * 
-                  Math.sin(Math.sqrt(x*x + y*y) + 1);
-        
-        positions[idx + 2] = z;
-      }
+  const functionRef = useRef<(x: number, y: number, t: number) => number>(() => 0);
+
+  // Compile the function when it changes
+  useEffect(() => {
+    try {
+      const expr = math.compile(functionString);
+      functionRef.current = (x: number, y: number, t: number) => {
+        try {
+          return expr.evaluate({ x, y, t });
+        } catch {
+          return 0;
+        }
+      };
+      onError('');
+    } catch (error) {
+      onError('Invalid function. Use math.js syntax (e.g., "sin(x)*cos(y)")');
+      console.error('Function error:', error);
+      
+      // Fallback to default function
+      functionRef.current = (x, y, t) => 
+        0.5 * Math.sin(x * 1.5 + t) * 
+        Math.cos(y * 1.5 + t * 0.7) * 
+        Math.sin(Math.sqrt(x*x + y*y) + t * 0.5);
     }
-    
-    geometry.computeVertexNormals();
-    return geometry;
+  }, [functionString, onError]);
+
+  // Create flat geometry (will be deformed in useFrame)
+  const geometry = useMemo(() => {
+    return new THREE.PlaneGeometry(size, size, resolution, resolution);
   }, [size, resolution]);
 
   useFrame(({ clock }) => {
@@ -39,23 +49,18 @@ const SurfacePlot = () => {
     
     const geometry = mesh.geometry;
     const positionAttribute = geometry.attributes.position as THREE.BufferAttribute;
-    // Cast to Float32Array for mutable access
     const positions = positionAttribute.array as Float32Array;
-    
     const time = clock.getElapsedTime();
-    const count = resolution + 1;  // Precompute for performance
-    
-    // Animate the surface
+    const count = resolution + 1;
+
     for (let i = 0; i <= resolution; i++) {
       for (let j = 0; j <= resolution; j++) {
         const idx = (i * count + j) * 3;
         const x = positions[idx];
         const y = positions[idx + 1];
         
-        // Animate the surface with time
-        positions[idx + 2] = 0.5 * Math.sin(x * 1.5 + time) * 
-                             Math.cos(y * 1.5 + time * 0.7) * 
-                             Math.sin(Math.sqrt(x*x + y*y) + time * 0.5);
+        // Apply user's function
+        positions[idx + 2] = functionRef.current(x, y, time);
       }
     }
     
